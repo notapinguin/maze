@@ -23,6 +23,18 @@ class GameFrame extends JFrame {
     private int rows;
     private int cols;
     private MazePanel mazePanel;
+    private Runnable onGameComplete;
+    
+
+    public GameFrame(Runnable onGameComplete) {
+        this.onGameComplete = onGameComplete;
+        setTitle("Maze Solver");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        resetGame();
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
 
     public GameFrame() {
         setTitle("Maze Solver");
@@ -53,7 +65,8 @@ class GameFrame extends JFrame {
             remove(mazePanel); // Remove the old panel if it exists
         }
     
-        mazePanel = new MazePanel(rows, cols);
+        mazePanel = new MazePanel(rows, cols, this);
+
         add(mazePanel);
         revalidate(); // Ensure layout manager updates properly
         repaint();    // Ensure the frame repaints fully
@@ -75,29 +88,35 @@ class MazePanel extends JPanel {
     private boolean firstMaze = true;
     private boolean showShortestPath = false; // Controls whether to show the shortest path
     private StringBuilder typedInput = new StringBuilder();
+    
 
-    public MazePanel(int rows, int cols) {
+    public MazePanel(int rows, int cols, GameFrame gameFrame) {
         this.rows = rows;
         this.cols = cols;
-    
-        int fixedWindowSize = 600;
-        this.cellSize = Math.min(fixedWindowSize / rows, fixedWindowSize / cols);
-    
+        this.cellSize = Math.min(600 / rows, 600 / cols);
         this.maze = new int[rows][cols];
         this.player = new MazePoint(1, 1, 0);
         this.exit = new MazePoint(rows - 2, cols - 2, 0);
-    
+        this.firstMaze = true;
         generateMaze();
         if (shortestPath == null) {
             findShortestPath();
         }
-        
     
         setPreferredSize(new Dimension(cols * cellSize, rows * cellSize));
         setBackground(Color.WHITE);
-        addKeyListener(new PlayerControl());
+        addKeyListener(new PlayerControl(gameFrame)); // Pass gameFrame to the key listener
         setFocusable(true);
     }
+    
+    public Dimension getSize() {
+        return new Dimension(mazePanel.getWidth(), mazePanel.getHeight());
+    }
+    
+    public Container getContentPane() {
+        return getContentPane();
+    }
+    
 
     private boolean isPathValid() {
         boolean[][] visited = new boolean[rows][cols];
@@ -283,6 +302,13 @@ class MazePanel extends JPanel {
     }
 
     private class PlayerControl extends KeyAdapter {
+        
+        private final GameFrame gameFrame;
+
+        public PlayerControl(GameFrame gameFrame) {
+            this.gameFrame = gameFrame;
+        }
+        
         @Override
         public void keyPressed(KeyEvent e) {
             int dx = 0, dy = 0;
@@ -316,25 +342,34 @@ class MazePanel extends JPanel {
             
             if (newX >= 0 && newY >= 0 && newX < rows && newY < cols && maze[newX][newY] == 0) {
                 player.setLocation(newX, newY);
-                
-                // Debug message: Check if the player is on the shortest path
-                if (shortestPath != null && shortestPath.contains(player)) {
-                    System.out.println("Player is on the optimal path at: (" + player.x + ", " + player.y + ")");
-                } else {
-                    System.out.println("Player moved off the optimal path at: (" + player.x + ", " + player.y + ")");
-                    GameFrame gameFrame = (GameFrame) SwingUtilities.getWindowAncestor(MazePanel.this);
+                if (shortestPath != null && !shortestPath.contains(player)) {
                     gameFrame.resetGame();
-
                 }
-    
                 repaint();
             }
+    
+            if (player.equals(exit)) {
+                JOptionPane.showMessageDialog(MazePanel.this, "You solved the maze!");
+                if (onGameComplete != null) {
+                    onGameComplete.run();
+                }
+            }
+    
+
+                
+                
+    
+                repaint();
+            
 
     
             if (player.equals(exit)) {
                 JOptionPane.showMessageDialog(MazePanel.this, "You solved the maze!");
-                System.exit(0);
+                if (onGameComplete != null) {
+                    onGameComplete.run(); // Notify the main program
+                }
             }
+            
         }
     }
     
@@ -367,4 +402,8 @@ class MazePoint {
         this.y = y;
     }
 }
+public interface GameResetListener {
+    void resetGame();
+}
+
 }
