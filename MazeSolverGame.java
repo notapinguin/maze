@@ -35,9 +35,12 @@ class GameFrame extends JFrame {
     private void randomizeDimensions() {
         Random rand = new Random();
         boolean feelingLucky = rand.nextBoolean();
-        int value = 5 + rand.nextInt(151);
-        if (feelingLucky) value = 5 + rand.nextInt(31);
-        rows = value%2==0?value+1:value; // Random between 21 and 101
+        int impossibleMaze = rand.nextInt(100);
+
+        int value = 5 + rand.nextInt(201);
+        if (feelingLucky) value = 17 + rand.nextInt(21);
+        if(impossibleMaze <= 2) value = 261;
+        rows = value%2==0?value+1:value; // Random between 21 and 101    
         
         cols = rows; // Ensure square maze
         System.out.println("New Maze Size: " + rows + "x" + cols);
